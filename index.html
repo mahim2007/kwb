@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>কাকতাড়ুয়া - নিউজ ফটোকার্ড জেনারেটর</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        /* ========================================================
+           ১. ওয়েবসাইটের মূল UI/UX
+           ======================================================== */
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'SolaimanLipi', -apple-system, sans-serif;
+            background: linear-gradient(180deg, #cffafe 0%, #e0f2fe 45%, #fce7f3 100%);
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 15px 20px 15px;
+            box-sizing: border-box;
+            color: #004d40;
+            -webkit-font-smoothing: antialiased;
+            position: relative; 
+        }
+
+        /* ========================================================
+           লগআউট বাটন
+           ======================================================== */
+        .logout-btn {
+            position: absolute; 
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 999;
+            transition: all 0.3s ease;
+        }
+        .logout-btn:hover { background: #ef4444; }
+        .logout-btn svg { width: 20px; height: 20px; color: #ef4444; transition: color 0.3s; }
+        .logout-btn:hover svg { color: #ffffff; }
+
+        /* ========================================================
+           ওয়েলকাম / লগইন পেজ
+           ======================================================== */
+        .welcome-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #cffafe 0%, #e0f2fe 45%, #fce7f3 100%);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999; padding: 20px; box-sizing: border-box;
+        }
+        
+        .welcome-card {
+            background: rgba(253, 242, 248, 0.85); padding: 40px 30px; border-radius: 32px;
+            box-shadow: 0 10px 40px rgba(0, 77, 64, 0.1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.9); width: 100%; max-width: 400px; text-align: center;
+        }
+
+        .welcome-card img { max-width: 100px; margin-bottom: 15px; border-radius: 12px; background: rgba(255,255,255,0.6); padding: 10px; }
+        .welcome-card h2 { color: #004d40; margin: 0 0 10px 0; font-size: 24px; font-weight: 800; }
+        .welcome-card p { color: #047857; margin: 0 0 20px 0; font-size: 15px; font-weight: 600; }
+
+        .password-container { position: relative; width: 100%; margin-bottom: 10px; }
+        .password-container input { padding-right: 45px; text-align: center; }
+        .toggle-password { position: absolute; top: 50%; right: 15px; transform: translateY(-50%); cursor: pointer; color: #004d40; display: flex; align-items: center; justify-content: center; }
+
+        /* মূল লেআউট */
+        .main-wrapper {
+            display: none; flex-direction: column; align-items: center; gap: 40px;
+            width: 100%; max-width: 500px; margin: 0 auto; flex: 1;
+        }
+
+        @media (min-width: 900px) {
+            .main-wrapper { flex-direction: row; justify-content: center; align-items: flex-start; max-width: 1000px; }
+            .controls-panel, .preview-wrapper { width: 100%; max-width: 450px; }
+        }
+
+        /* --- কন্ট্রোল প্যানেল --- */
+        .controls-panel { width: 100%; box-sizing: border-box; }
+        
+        .top-logo-container { text-align: center; margin-bottom: 15px; position: relative; }
+        .top-logo-container img { max-width: 120px; height: auto; border-radius: 12px; background: rgba(255,255,255,0.6); padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .panel-title { margin-top: 0; margin-bottom: 25px; color: #004d40; font-size: 24px; font-weight: 800; text-align: center; }
+
+        .control-card {
+            background: rgba(253, 242, 248, 0.85); padding: 24px; border-radius: 24px; margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 8px 25px rgba(0, 77, 64, 0.05);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); width: 100%; box-sizing: border-box;
+        }
+        .control-card-title {
+            background: rgba(4, 120, 87, 0.1); color: #004d40; font-size: 14px; font-weight: bold;
+            padding: 6px 14px; border-radius: 8px; display: inline-block; margin-bottom: 16px; border: 1px solid rgba(4, 120, 87, 0.15);
+        }
+
+        .custom-input {
+            width: 100%; padding: 15px 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 1);
+            background: rgba(255, 255, 255, 0.65); color: #004d40; font-size: 15px; font-family: inherit; font-weight: bold;
+            box-sizing: border-box; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+        .custom-input[type="file"] { padding: 11px 20px; cursor: pointer; }
+        .custom-input:focus { outline: none; border-color: #004d40; background: rgba(255, 255, 255, 0.9); box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.15); }
+
+        .slider-group { display: flex; align-items: center; margin-bottom: 16px; }
+        .slider-group:last-child { margin-bottom: 0; }
+        .slider-group label { width: 90px; font-size: 14px; color: #006d5b; font-weight: bold; }
+        .slider-group input[type="range"] { flex: 1; cursor: pointer; -webkit-appearance: none; background: transparent; }
+        .slider-group input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 22px; width: 22px; border-radius: 50%; background: #004d40; cursor: pointer; margin-top: -8px; box-shadow: 0 2px 6px rgba(0, 77, 64, 0.3); border: 2px solid #ffffff; transition: transform 0.1s ease; }
+        .slider-group input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.15); }
+        .slider-group input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 6px; background: rgba(0, 77, 64, 0.15); border-radius: 4px; }
+        .help-text { font-size: 12px; color: #00796b; margin-top: 8px; display: block; font-weight: bold; }
+
+        .preview-wrapper { position: sticky; top: 30px; width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; margin: 0 auto; }
+        .live-preview-badge { 
+            background: rgba(253, 242, 248, 0.9); color: #004d40; padding: 8px 24px; border-radius: 30px; 
+            font-size: 14px; font-weight: bold; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.8); 
+            box-shadow: 0 6px 15px rgba(0, 77, 64, 0.08); display: flex; align-items: center; gap: 8px; 
+        }
+        .live-preview-badge::before { content: ''; display: inline-block; width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .download-btn {
+            width: 100%; padding: 16px; border-radius: 30px; border: none; background-color: #004d40; color: #ffffff; 
+            font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 77, 64, 0.25); display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        .download-btn:hover { background-color: #006d5b; transform: translateY(-2px); box-shadow: 0 12px 25px rgba(0, 77, 64, 0.35); }
+        .download-btn:active { transform: translateY(1px); }
+
+        .spinner { display: none; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .copyright-footer { display: none; margin-top: 40px; text-align: center; font-size: 15px; color: #00796b; border-top: 1px solid rgba(0, 77, 64, 0.15); padding-top: 20px; font-weight: bold; width: 100%; }
+        .copyright-footer a { color: #0284c7; font-weight: 800; text-decoration: underline; text-underline-offset: 4px; transition: color 0.3s; background: transparent; padding: 2px 4px; }
+        .copyright-footer a:hover { color: #0369a1; }
+
+        /* ========================================================
+           ২. প্রিভিউ কার্ডের কোড (চূড়ান্ত গ্রেডিয়েন্ট ফিক্স)
+           ======================================================== */
+        :root {
+            --brand-color: #02d56a; 
+            --card-bg: #0b131e;
+            --card-bg-rgb: 11, 19, 30; 
+            --highlight-yellow: #ffdd00; 
+        }
+
+        .preview-card {
+            width: 100%; max-width: 400px; margin: 0 auto; background-color: var(--card-bg); 
+            position: relative; color: white; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .preview-header {
+            position: absolute; top: 0; left: 0; width: 100%; padding: 10px 10px; 
+            display: flex; justify-content: space-between; align-items: flex-start; box-sizing: border-box; z-index: 10; pointer-events: none; 
+        }
+
+        .date-badge {
+            background: linear-gradient(to right, rgba(0,0,0,0.8), rgba(var(--card-bg-rgb), 0.05)); padding: 4px 10px; 
+            font-size: 11px; font-weight: normal; color: rgba(255, 255, 255, 0.85); border: none; margin-left: -10px; margin-top: 5px; border-left: 2px solid var(--brand-color); 
+        }
+
+        .logo-container { width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin-top: -20px; margin-right: -20px; }
+        .logo-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* ছবি যেন নিচ পর্যন্ত না যায়, তাই হাইট ৮০% করা হয়েছে */
+        .image-container { 
+            width: 100%; height: 80%; position: absolute; top: 0; left: 0; 
+            background-color: var(--card-bg); overflow: hidden; box-sizing: border-box; z-index: 1; 
+        }
+
+        .image-crop-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; background-color: #1a1a1a; display: flex; justify-content: center; align-items: center; }
+        .image-crop-wrapper img { position: absolute; display: block; transform-origin: center center; }
+
+        /* গ্রেডিয়েন্ট এবং কন্টেন্ট এরিয়া ১০০% হাইট নিয়ে শুরু হবে একদম উপর থেকে */
+        .content-area { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            /* ০% থেকে ৪৫% পর্যন্ত ট্রান্সপারেন্ট, এরপর ধীরে ধীরে কালো হবে */
+            background: linear-gradient(to bottom, 
+                rgba(var(--card-bg-rgb), 0) 0%, 
+                rgba(var(--card-bg-rgb), 0) 45%, 
+                rgba(var(--card-bg-rgb), 0.9) 65%, 
+                var(--card-bg) 75%, 
+                var(--card-bg) 100%); 
+            padding: 0 20px 45px 20px; 
+            display: flex; flex-direction: column; justify-content: flex-end; align-items: center; box-sizing: border-box; z-index: 3; 
+        }
+
+        .brand-badge-wrapper { display: flex; justify-content: center; width: 100%; margin-bottom: 15px; z-index: 5; position: relative; }
+        
+        .brand-badge { background-color: var(--brand-color); color: #ffffff; padding: 2px 15px; font-size: 16px; font-weight: 900; transform: skewX(-20deg); position: relative; }
+        .brand-badge span { display: block; transform: skewX(20deg); letter-spacing: 1px; }
+        .brand-badge::before { content: ''; position: absolute; top: -5px; left: -5px; bottom: -5px; width: 20px; border-top: 3px solid var(--brand-color); border-left: 3px solid var(--brand-color); pointer-events: none; }
+        .brand-badge::after { content: ''; position: absolute; top: -5px; right: -5px; bottom: -5px; width: 20px; border-bottom: 3px solid var(--brand-color); border-right: 3px solid var(--brand-color); pointer-events: none; }
+
+        .preview-headline { font-size: 22px; font-weight: bold; text-align: center; line-height: 1.3; color: #ffffff; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); width: 100%; max-height: 120px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; margin-bottom: 10px; }
+        .highlight-text { color: var(--highlight-yellow); }
+
+        .preview-footer { width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: #ccc; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; position: absolute; bottom: 0; left: 0; padding: 10px 20px 15px 20px; background-color: transparent; box-sizing: border-box; z-index: 4; }
+        .preview-footer .highlight-url { color: var(--brand-color); }
+    </style>
+</head>
+<body>
+
+    <div class="logout-btn" id="logoutBtn" title="লগআউট করুন">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+    </div>
+
+    <div id="welcomeScreen" class="welcome-screen">
+        <div class="welcome-card">
+            <img src="logo.png" alt="লোগো" onerror="this.style.display='none'">
+            <h2>স্বাগতম!</h2>
+            <p><b>kwb.pro.bd</b> প্যানেলে প্রবেশ করতে আপনার Access Key দিন</p>
+            
+            <div class="password-container">
+                <input type="password" id="accessKeyInput" class="custom-input" placeholder="Access Key লিখুন">
+                <span class="toggle-password" id="togglePassword">
+                    <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </span>
+            </div>
+
+            <span id="errorMsg" style="color: #ef4444; display: none; font-size: 13px; font-weight: bold; margin-bottom: 10px;">❌ পাসওয়ার্ড ভুল হয়েছে!</span>
+            
+            <button id="accessBtn" class="download-btn" style="margin-top: 10px;">প্রবেশ করুন</button>
+        </div>
+    </div>
+
+    <div class="main-wrapper" id="mainWrapper">
+        
+        <div class="controls-panel">
+            <div class="top-logo-container">
+                <img src="logo.png" alt="লোগো" onerror="this.style.display='none'">
+            </div>
+
+            <h3 class="panel-title">ফটোকার্ড কন্ট্রোল প্যানেল</h3>
+            
+            <div class="control-card">
+                <span class="control-card-title">মিডিয়া (কভার ছবি)</span>
+                <input type="file" id="uploadMedia" accept="image/png, image/jpeg, image/jpg, image/webp" class="custom-input">
+            </div>
+
+            <div class="control-card">
+                <span class="control-card-title">শিরোনাম</span>
+                <textarea id="inputHeadline" rows="3" class="custom-input">রংপুর বিভাগে আজ *মাঝারি থেকে ভারী বৃষ্টির* সম্ভাবনা রয়েছে</textarea>
+                <span class="help-text">টিপস: কোনো শব্দ হলুদ করতে তার আগে ও পরে * (স্টার) দিন।</span>
+            </div>
+
+            <div class="control-card">
+                <span class="control-card-title">তারিখ</span>
+                <input type="text" id="inputDate" value="২১ এপ্রিল ২০২৬" class="custom-input">
+            </div>
+
+            <div class="control-card">
+                <span class="control-card-title">শিরোনাম টেক্সট সাইজ</span>
+                <div class="slider-group">
+                    <label>আকার</label>
+                    <input type="range" id="headlineSizeCtrl" min="12" max="36" step="1" value="22">
+                </div>
+            </div>
+
+            <div class="control-card" style="margin-bottom: 0;">
+                <span class="control-card-title">ছবি অ্যাডজাস্টমেন্ট (ঐচ্ছিক)</span>
+                <div class="slider-group">
+                    <label>জুম</label>
+                    <input type="range" id="zoomCtrl" min="1" max="3" step="0.1" value="1">
+                </div>
+                <div class="slider-group">
+                    <label>ডানে-বামে</label>
+                    <input type="range" id="posXCtrl" min="-200" max="200" step="2" value="0">
+                </div>
+                <div class="slider-group">
+                    <label>উপরে-নিচে</label>
+                    <input type="range" id="posYCtrl" min="-200" max="200" step="2" value="0">
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-wrapper">
+            <div class="live-preview-badge">লাইভ প্রিভিউ</div>
+            
+            <div class="preview-card" id="kaktaruaCard">
+                <div class="preview-header">
+                    <div class="date-badge" id="cardDate">২১ এপ্রিল ২০২৬</div>
+                    <div class="logo-container">
+                        <img src="logo.png" id="cardLogo" alt="লোগো" onerror="this.style.display='none'">
+                    </div>
+                </div>
+                
+                <div class="image-container" id="imgContainer">
+                    <div class="image-crop-wrapper">
+                        <img src="https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" id="cardImage" alt="Preview">
+                    </div>
+                </div>
+
+                <div class="content-area">
+                    <div class="brand-badge-wrapper">
+                        <div class="brand-badge">
+                            <span>কাকতাড়ুয়া</span>
+                        </div>
+                    </div>
+                    <div class="preview-headline" id="cardHeadline">রংপুর বিভাগে আজ <span class="highlight-text">মাঝারি থেকে ভারী বৃষ্টির</span> সম্ভাবনা রয়েছে</div>
+                    
+                    <div class="preview-footer">
+                        <div>• বিস্তারিত ক্যাপশনে</div>
+                        <div class="highlight-url">🌐 kaktarua.org</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="download-btn" id="downloadBtn">
+                <span class="spinner" id="loadingSpinner"></span>
+                <span id="btnText">ফটোকার্ড ডাউনলোড করুন</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="copyright-footer" id="copyrightFooter">
+        Made by <a href="#" onclick="openFacebookApp(event)">Md Mahim</a>
+    </div>
+
+    <script>
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const mainWrapper = document.getElementById('mainWrapper');
+        const copyrightFooter = document.getElementById('copyrightFooter');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const accessKeyInput = document.getElementById('accessKeyInput');
+        const accessBtn = document.getElementById('accessBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        const togglePassword = document.getElementById('togglePassword');
+        const eyeIcon = document.getElementById('eyeIcon');
+
+        togglePassword.addEventListener('click', function () {
+            const type = accessKeyInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            accessKeyInput.setAttribute('type', type);
+            if (type === 'text') {
+                eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+            } else {
+                eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+            }
+        });
+
+        logoutBtn.addEventListener('click', function() {
+            sessionStorage.removeItem('kwb_unlocked');
+            window.location.reload();
+        });
+
+        function unlockSite() {
+            welcomeScreen.style.display = 'none';
+            mainWrapper.style.display = 'flex';
+            copyrightFooter.style.display = 'block';
+            logoutBtn.style.display = 'flex';
+            
+            setTimeout(() => {
+                setExactRatio();
+                triggerPreRender(); 
+            }, 300); 
+        }
+
+        if (sessionStorage.getItem('kwb_unlocked') === 'true') {
+            unlockSite();
+        }
+
+        accessBtn.addEventListener('click', () => {
+            if (accessKeyInput.value === 'teamkwb') {
+                sessionStorage.setItem('kwb_unlocked', 'true');
+                unlockSite();
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        });
+
+        accessKeyInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                accessBtn.click();
+            }
+        });
+
+        const inputDate = document.getElementById('inputDate');
+        const inputHeadline = document.getElementById('inputHeadline');
+        const uploadMedia = document.getElementById('uploadMedia');
+        
+        const cardDate = document.getElementById('cardDate');
+        const cardHeadline = document.getElementById('cardHeadline');
+        const cardImage = document.getElementById('cardImage'); 
+        const imgContainer = document.getElementById('imgContainer');
+        
+        const downloadBtn = document.getElementById('downloadBtn');
+        const btnText = document.getElementById('btnText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const previewCard = document.getElementById('kaktaruaCard');
+
+        const headlineSizeCtrl = document.getElementById('headlineSizeCtrl');
+        const zoomCtrl = document.getElementById('zoomCtrl');
+        const posXCtrl = document.getElementById('posXCtrl');
+        const posYCtrl = document.getElementById('posYCtrl');
+
+        let readyBlob = null;
+        let preRenderTimeout = null;
+        let isRendering = false;
+
+        function triggerPreRender() {
+            readyBlob = null; 
+            clearTimeout(preRenderTimeout);
+            preRenderTimeout = setTimeout(() => {
+                if(isRendering) return;
+                isRendering = true;
+                
+                const exactWidth = previewCard.offsetWidth;
+                if(exactWidth === 0) { isRendering = false; return; }
+                
+                html2canvas(previewCard, {
+                    scale: 3, 
+                    useCORS: true,
+                    backgroundColor: "#0b131e", 
+                    logging: false,
+                    width: exactWidth,
+                }).then(canvas => {
+                    canvas.toBlob(function(blob) {
+                        readyBlob = blob; 
+                        isRendering = false;
+                    }, 'image/jpeg', 0.98); 
+                }).catch(() => { isRendering = false; });
+            }, 600); 
+        }
+
+        function setExactRatio() {
+            if(mainWrapper.style.display !== 'none'){
+                const width = previewCard.offsetWidth;
+                previewCard.style.height = (width * 1.25) + 'px';
+                applyPolyfillCover(); 
+            }
+        }
+        window.addEventListener('resize', setExactRatio);
+        window.addEventListener('load', setExactRatio);
+        
+        function applyPolyfillCover() {
+            const containerRatio = imgContainer.offsetWidth / imgContainer.offsetHeight;
+            const imgRatio = cardImage.naturalWidth / cardImage.naturalHeight;
+
+            if (imgRatio > containerRatio) {
+                cardImage.style.width = 'auto';
+                cardImage.style.height = '100%';
+            } else {
+                cardImage.style.width = '100%';
+                cardImage.style.height = 'auto';
+            }
+            updateImageTransform();
+        }
+
+        cardImage.onload = () => {
+            applyPolyfillCover();
+            triggerPreRender(); 
+        };
+
+        uploadMedia.addEventListener('change', function(event) {
+            readyBlob = null; 
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    cardImage.src = e.target.result;
+                    zoomCtrl.value = 1;
+                    posXCtrl.value = 0;
+                    posYCtrl.value = 0;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        inputDate.addEventListener('input', (e) => { 
+            cardDate.innerText = e.target.value; 
+            triggerPreRender(); 
+        });
+
+        inputHeadline.addEventListener('input', (e) => {
+            let text = e.target.value;
+            let formattedText = text.replace(/\*(.*?)\*/g, '<span class="highlight-text">$1</span>');
+            cardHeadline.innerHTML = formattedText;
+            triggerPreRender();
+        });
+
+        headlineSizeCtrl.addEventListener('input', (e) => {
+            cardHeadline.style.fontSize = e.target.value + 'px';
+            triggerPreRender();
+        });
+
+        function updateImageTransform() {
+            const scale = zoomCtrl.value;
+            const x = posXCtrl.value;
+            const y = posYCtrl.value;
+            cardImage.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+        }
+
+        zoomCtrl.addEventListener('input', () => { updateImageTransform(); triggerPreRender(); });
+        posXCtrl.addEventListener('input', () => { updateImageTransform(); triggerPreRender(); });
+        posYCtrl.addEventListener('input', () => { updateImageTransform(); triggerPreRender(); });
+
+        downloadBtn.addEventListener('click', () => {
+            if (readyBlob) {
+                const url = URL.createObjectURL(readyBlob);
+                const imageLink = document.createElement('a');
+                imageLink.download = 'Kaktarua-News-Card.jpg';
+                imageLink.href = url;
+                imageLink.click();
+                URL.revokeObjectURL(url);
+            } else {
+                btnText.innerText = "প্রসেসিং হচ্ছে...";
+                loadingSpinner.style.display = "inline-block";
+                downloadBtn.style.pointerEvents = "none";
+                
+                const exactWidth = previewCard.offsetWidth;
+
+                setTimeout(() => {
+                    html2canvas(previewCard, {
+                        scale: 3,
+                        useCORS: true,
+                        backgroundColor: "#0b131e", 
+                        logging: false,
+                        width: exactWidth,
+                    }).then(canvas => {
+                        canvas.toBlob(function(blob) {
+                            const url = URL.createObjectURL(blob);
+                            const imageLink = document.createElement('a');
+                            imageLink.download = 'Kaktarua-News-Card.jpg';
+                            imageLink.href = url;
+                            imageLink.click();
+                            URL.revokeObjectURL(url);
+                            
+                            btnText.innerText = "ফটোকার্ড ডাউনলোড করুন";
+                            loadingSpinner.style.display = "none";
+                            downloadBtn.style.pointerEvents = "auto";
+                            readyBlob = blob; 
+                        }, 'image/jpeg', 0.98); 
+                    }).catch(err => {
+                        alert("ডাউনলোড জেনারেট করতে সমস্যা হচ্ছে।");
+                        btnText.innerText = "ফটোকার্ড ডাউনলোড করুন";
+                        loadingSpinner.style.display = "none";
+                        downloadBtn.style.pointerEvents = "auto";
+                    });
+                }, 50);
+            }
+        });
+
+        function openFacebookApp(e) {
+            e.preventDefault();
+            var intentUrl = "intent://www.facebook.com/m.mahim2007#Intent;package=com.facebook.katana;scheme=https;S.browser_fallback_url=https://www.facebook.com/m.mahim2007;end;";
+            window.location.href = intentUrl;
+        }
+    </script>
+</body>
+</html>
